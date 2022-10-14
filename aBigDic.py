@@ -1,84 +1,103 @@
-from itertools import islice
 import jieba
-def creatCounts():
-    file1 = open('data/80w.txt', 'r', encoding='utf-8')
-    # 读取文件的前100行
-    words = dict()
-    N=5000
-    content = list(islice(file1, N))
-    count=0
-    with open('data/stopWord.txt','r',encoding='utf-8') as f:
-        lines = f.readlines()
-    lines = [x.strip() for x in lines]
-    for i in range(0, N):
-        part = splitLine(content[i])
-        sb=len(part)
-        for j in range(0, sb):
-            if part[j] not in words and part[j] not in lines:
-                words[part[j]] = count
-                count=count+1
-    del words['\n']
-    del words[' ']
+import numpy as np
+import pandas
+import sklearn
 
+##################
+####   函数定义
+##################
 
-    counts = [0 for _ in range(count)]
-    for i in range(0, N):
-        part = splitLine(content[i])
-        sb=len(part)
-        for j in range(0, sb):
-            if part[j] in words:
-                counts[words[part[j]]]=counts[words[part[j]]]+1
-    return counts,words,content
-def loveU3000(lovetimes):
-    lovewords=dict()
-    (a,b,content)=creatCounts()
-    count=0;
-    for i in range(0,lovetimes):
-        c=a.index(max(a))
-        lovewords[return_key(c,b)]=count
-        a[c] = 0
-        count=count+1
-    return lovewords
-
-def return_key(val,dictionary):
-    for key, value in dictionary.items():
-        if value == val:
-            return key
-    return ('Key Not Found')
-
-
-
-
-# 通过\t将读取到的每一行分为标签和分词过后的句子
-def splitLine(sentence):
+# 输入一行（label+短信），输出(label, [keywords] )
+def split_line(sentence):
     s = sentence.split("\t")
-    return  jieba.lcut(s[2])
-def creatMatrix(lovetimes):
-
-    (a, b, content)=creatCounts()
-    lovewords=loveU3000(lovetimes)
-    print(lovewords)
-
-    paragraph=[0 for _ in range(len(content))]
-    for i in range(0, len(content)):
-        sentences = [0 for _ in range(lovetimes)]
-        part = splitLine(content[i])
-        sb = len(part)
-        #print(part)
-        for j in range(0, lovetimes):
-
-            if return_key(j,lovewords) in part:
-                sentences[j] = 1
-            paragraph[i]=sentences
-    #print(paragraph)
-    return paragraph
+    return int(s[1]), jieba.lcut(s[2])
 
 
+def read_files(sample_size):
+    content = []
+    stop_word = []
+
+    # 读取
+    for line in open('data/80w.txt', 'r', encoding='utf-8'):
+        content.append(split_line(line))
+        sample_size = sample_size - 1
+        if sample_size < 0:
+            break
+    for line in open('data/stopWord.txt', 'r', encoding='utf-8'):
+        stop_word.append(line.strip())
+
+    # 移除 stop word
+    for lb in content:
+        for word in lb[1]:
+            if word.strip() in stop_word or word.strip() == '':
+                lb[1].remove(word)
+    return content
 
 
+def get_freq_table(content, table_size):
+    wordset = []
+    for data in content:
+        wordset.extend(data[1])
+    ser = pandas.Series(wordset)
+    return ser.value_counts().iloc[:table_size].keys()
 
-if __name__ == '__main__':
-    lovetimes=1000
-    creatCounts()
-    loveU3000(lovetimes)
-    creatMatrix(lovetimes)
+
+def gen_datasets(top_freq_word, content):
+    X_train = []
+    y_train = []
+    for data in content:
+        code = []
+        key_words = data[1]
+        for check in top_freq_word:
+            if check in key_words:
+                code.append(1)
+            else:
+                code.append(0)
+        X_train.append(code)
+        y_train.append(data[0])
+    return np.array(X_train), np.array(y_train)
+
+
+##################
+####   参数设置
+##################
+
+# 关键词个数（取词频最高的多少个词作为特征？）
+KEYWORD_SIZE = 1000
+
+# 训练集样本数
+TRAIN_DATA_SIZE = 3000
+
+# 测试集样本数
+TEST_DATA_SIZE = 300
+
+
+##################
+####   预处理
+##################
+
+content = read_files(TRAIN_DATA_SIZE+TEST_DATA_SIZE)
+word_table = get_freq_table(content, KEYWORD_SIZE)
+
+# 获得训练集
+X_train, y_train = gen_datasets(word_table, content[:TRAIN_DATA_SIZE])
+
+# 获得测试集
+X_test, y_test = gen_datasets(word_table, content[TRAIN_DATA_SIZE:TRAIN_DATA_SIZE+TEST_DATA_SIZE])
+
+
+##################
+####   模型训练
+##################
+from sklearn.naive_bayes import GaussianNB
+from sklearn.metrics import accuracy_score
+
+clf = GaussianNB()
+clf.fit(X_train, y_train)
+
+prediction = clf.predict(X_test)
+# print("prediction:", prediction)
+# print("actual:", y_test)
+
+accuracy = accuracy_score(prediction, y_test)
+print("accuracy:", accuracy)
