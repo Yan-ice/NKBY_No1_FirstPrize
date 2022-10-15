@@ -91,13 +91,24 @@ X_test, y_test = gen_datasets(word_table, content[TRAIN_DATA_SIZE:TRAIN_DATA_SIZ
 ##################
 from sklearn.naive_bayes import GaussianNB
 from sklearn.metrics import accuracy_score
-
+from sklearn.linear_model import LinearRegression#引入线性回归模型
+##method1
 clf = GaussianNB()
 clf.fit(X_train, y_train)
-
-prediction = clf.predict(X_test)
+prediction1 = clf.predict(X_test)
 # print("prediction:", prediction)
 # print("actual:", y_test)
 
-accuracy = accuracy_score(prediction, y_test)
-print("accuracy:", accuracy)
+##method2
+model=LinearRegression()
+model.fit(X_train,y_train)
+prediction2=model.predict(X_test)
+
+
+##正确性检测
+##accuracy_method1
+accuracy_method1 = accuracy_score(prediction1, y_test)
+print("accuracy:", accuracy_method1)
+##accuracy_method2
+print("accuracy:",model.score(X_test,y_test))#对训练情况进行打分
+
