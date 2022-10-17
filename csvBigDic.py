@@ -10,9 +10,8 @@ import csv
 
 # 输入一行（label+短信），输出(label, [keywords] )
 def split_line(sentence):
-    list = sentence[2].split(' ')
-    return int(sentence[0]), sentence[2]
-
+    list_ = sentence[2].split(' ')
+    return int(sentence[0]), list_
 
 def read_files(sample_size):
     content = []
@@ -23,8 +22,8 @@ def read_files(sample_size):
         for row in csv.reader(f, skipinitialspace=True):
             if row[0] == 'label':
                 continue
-                content.append(split_line(row))
-                sample_size = sample_size - 1
+            content.append(split_line(row))
+            sample_size = sample_size - 1
             if sample_size < 0:
                 break
     for line in open('data/stopWord.txt', 'r', encoding='utf-8'):
