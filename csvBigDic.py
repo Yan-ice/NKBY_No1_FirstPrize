@@ -65,14 +65,31 @@ def gen_datasets(top_freq_word, content):
 ####   参数设置
 ##################
 
+# 训练集样本数
+TRAIN_DATA_SIZE = 50000
+
+# 测试集样本数
+TEST_DATA_SIZE = 10000
+
+
 # 关键词个数（取词频最高的多少个词作为特征？）
 KEYWORD_SIZE = 1000
 
-# 训练集样本数
-TRAIN_DATA_SIZE = 3000
+#
+# 以下是 决策树参数调整。这些参数太大会导致过拟合，太小会导致特征不足。
+#
 
-# 测试集样本数
-TEST_DATA_SIZE = 300
+# 决策树最大深度
+MAX_DEPTH = 4
+
+# 决策树需要多少个分支才会区分
+MIN_SAMPLES_SPLIT = 5
+
+# 节点后包含样本数量小于该值就不会区分。如果是int，则是具体数目，如果是float，则是百分比。
+MIN_SAMPLE_LEAF = 5
+
+# 可以填写random或best。一般来说，特征多的情况下random效果较好。
+METHOD = "random"
 
 
 ##################
@@ -94,7 +111,8 @@ X_test, y_test = gen_datasets(word_table, content[TRAIN_DATA_SIZE:TRAIN_DATA_SIZ
 ##################
 from sklearn.naive_bayes import GaussianNB
 from sklearn.metrics import accuracy_score
-from sklearn.linear_model import LinearRegression#引入线性回归模型
+from sklearn.tree import DecisionTreeClassifier
+
 ##method1
 clf = GaussianNB()
 clf.fit(X_train, y_train)
@@ -103,7 +121,7 @@ prediction1 = clf.predict(X_test)
 # print("actual:", y_test)
 
 ##method2
-model=LinearRegression()
+model = DecisionTreeClassifier(splitter=METHOD, max_depth=MAX_DEPTH, min_samples_leaf=MIN_SAMPLE_LEAF, min_samples_split=MIN_SAMPLES_SPLIT)
 model.fit(X_train,y_train)
 prediction2=model.predict(X_test)
 
@@ -111,6 +129,6 @@ prediction2=model.predict(X_test)
 ##正确性检测
 ##accuracy_method1
 accuracy_method1 = accuracy_score(prediction1, y_test)
-print("accuracy:", accuracy_method1)
+print("Gaussian accuracy:", accuracy_method1)
 ##accuracy_method2
-print("accuracy:",model.score(X_test,y_test))#对训练情况进行打分
+print("Decision Tree accuracy:",model.score(X_test,y_test))#对训练情况进行打分
